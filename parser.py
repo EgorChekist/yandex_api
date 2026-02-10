@@ -4,18 +4,30 @@ import httpx
 
 def parse_playlist_url(url: str):
     m = re.search(r"/users/([^/]+)/playlists/(\d+)", url)
-    if not m:
-        return None
-    return {"owner": m.group(1), "playlist_id": m.group(2)}
+    if m:
+        print('1 ссылка')
+        return {
+            "type": "user",
+            "owner": m.group(1),
+            "playlist_id": m.group(2),
+        }
+    m = re.search(r"/playlists/(\d+)", url)
+    if m:
+        print('2 ссылка')
+        return {
+            "type": "lk",
+            "playlist_id": m.group(1),
+        }
+    return None
 
 def parse_tracks(data: dict) -> list[dict]:
     playlist = data.get("playlist")
     if not playlist:
-        raise RuntimeError("Плейлист не найден")
+        raise RuntimeError("Плейлист не найден/Playlist not found")
 
     tracks = playlist.get("tracks")
     if not tracks:
-        raise RuntimeError("Плейлист пуст")
+        raise RuntimeError("Плейлист пуст/Playlist is empty")
 
     playlist_title = playlist.get("title")
 
@@ -58,9 +70,27 @@ def parse_tracks(data: dict) -> list[dict]:
 
     return result
 
-async def fetch_playlist(owner: str, kind: str):
-    url = f"https://music.yandex.ru/handlers/playlist.jsx?owner={owner}&kinds={kind}"
+async def fetch_playlist(parsed: dict):
     async with httpx.AsyncClient(timeout=10) as client:
+
+        if parsed["type"] == "user":
+            print('owner есть')
+            url = (
+                f"https://music.yandex.ru/handlers/playlist.jsx?owner={parsed['owner']}&kinds={parsed['playlist_id']}"
+            )
+        elif parsed["type"] == "lk":
+            print('ownera нет')
+            url = (
+                f"https://api.music.yandex.by/playlist/{parsed['playlist_id']}?resumestream=false&richtracks=true"
+            )
+        else:
+            raise ValueError("Неизвестный тип плейлиста")
+
         r = await client.get(url)
+        if r.status_code == 302:
+            return {
+                "error": "Яндекс требует прохождение капчи/авторизацию",
+                "type": parsed["type"],
+            }
         r.raise_for_status()
-        return parse_tracks(r.json())
+        return r.json()
