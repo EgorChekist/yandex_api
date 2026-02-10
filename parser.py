@@ -5,7 +5,6 @@ import httpx
 def parse_playlist_url(url: str):
     m = re.search(r"/users/([^/]+)/playlists/(\d+)", url)
     if m:
-        print('1 ссылка')
         return {
             "type": "user",
             "owner": m.group(1),
@@ -13,7 +12,6 @@ def parse_playlist_url(url: str):
         }
     m = re.search(r"/playlists/(\d+)", url)
     if m:
-        print('2 ссылка')
         return {
             "type": "lk",
             "playlist_id": m.group(1),
@@ -74,12 +72,10 @@ async def fetch_playlist(parsed: dict):
     async with httpx.AsyncClient(timeout=10) as client:
 
         if parsed["type"] == "user":
-            print('owner есть')
             url = (
                 f"https://music.yandex.ru/handlers/playlist.jsx?owner={parsed['owner']}&kinds={parsed['playlist_id']}"
             )
         elif parsed["type"] == "lk":
-            print('ownera нет')
             url = (
                 f"https://api.music.yandex.by/playlist/{parsed['playlist_id']}?resumestream=false&richtracks=true"
             )
