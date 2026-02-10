@@ -1,4 +1,3 @@
-# main.py
 import json
 import uvicorn
 from fastapi import FastAPI, Request
@@ -23,10 +22,8 @@ async def get_playlist(url: str):
     if not info:
         return {"error": "Неверная ссылка"}
 
-    playlist = await fetch_playlist(
-        info["owner"],
-        info["playlist_id"]
-    )
+    playlist = await fetch_playlist(info)
+
 
     with open("playlist.json", "w", encoding="utf-8") as file:
         json.dump(playlist, file, ensure_ascii=False, indent=4)
